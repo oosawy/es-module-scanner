@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	"fmt"
 	"unicode"
 )
 
@@ -29,10 +28,16 @@ func Scan(input string) Module {
 
 		switch s.ch {
 		case 'i':
-			if s.isKeywordStart() && s.readWord() == "import" {
-				stmt := fmt.Sprintf("import%s\n", s.readLine())
+			if s.isKeywordStart() && s.peekWord() == "import" {
+				stmt := s.readLine()
 				println(stmt)
 				s.module.Imports = append(s.module.Imports, stmt)
+			}
+		case 'e':
+			if s.isKeywordStart() && s.peekWord() == "export" {
+				stmt := s.readLine()
+				println(stmt)
+				s.module.Exports = append(s.module.Exports, stmt)
 			}
 		}
 	}
@@ -51,14 +56,13 @@ func (s *scanner) readChar() rune {
 	return s.ch
 }
 
-func (s *scanner) readWord() string {
-	start := s.position
-	for !isBoundary(s.ch) {
-		if s.readChar() == 0 {
-			break
+func (s *scanner) peekWord() string {
+	for p := s.readPosition; p < len(s.input); p++ {
+		if isBoundary(s.input[p]) {
+			return string(s.input[s.position:p])
 		}
 	}
-	return string(s.input[start:s.position])
+	return string(s.input[s.position:])
 }
 
 func (s *scanner) readLine() string {
