@@ -29,7 +29,7 @@ func Scan(input string) Module {
 		switch s.ch {
 		case 'i':
 			if s.isKeywordStart() {
-				s.parseImport()
+				s.tryParseImport()
 			}
 		case 'e':
 			if s.isKeywordStart() {

@@ -2,40 +2,58 @@ package scanner
 
 import "unicode"
 
+type Span struct {
+	Start int
+	End   int
+}
+
 type Token struct {
 	Type    string
 	Literal string
+	Span    Span
+}
+
+func (s *scanner) peekToken() Token {
+	position := s.position
+	readPosition := s.readPosition
+	defer func() {
+		s.position = position
+		s.readPosition = readPosition
+	}()
+
+	return s.readToken()
 }
 
 func (s *scanner) readToken() Token {
 	s.skipCommentWhiteSpace()
 
+	start := s.position
 	switch s.ch {
 	case 0:
-		return Token{Type: "EOF", Literal: ""}
+		return Token{Type: "EOF", Literal: "", Span: Span{start, s.position}}
 	case '{':
 		s.readChar()
-		return Token{Type: "{", Literal: "{"}
+		return Token{Type: "{", Literal: "{", Span: Span{start, s.position}}
 	case '}':
 		s.readChar()
-		return Token{Type: "}", Literal: "}"}
+		return Token{Type: "}", Literal: "}", Span: Span{start, s.position}}
 	case ';':
 		s.readChar()
-		return Token{Type: ";", Literal: ";"}
+		return Token{Type: ";", Literal: ";", Span: Span{start, s.position}}
 	case ',':
 		s.readChar()
-		return Token{Type: ",", Literal: ","}
+		return Token{Type: ",", Literal: ",", Span: Span{start, s.position}}
 	case '*':
 		s.readChar()
-		return Token{Type: "*", Literal: "*"}
+		return Token{Type: "*", Literal: "*", Span: Span{start, s.position}}
 	case '"', '\'':
-		start := s.position
 		quote := s.ch
 
 		for s.readChar() != 0 {
 			if s.ch == quote {
 				s.readChar()
-				return Token{Type: "STRING", Literal: string(s.input[start:s.position])}
+				lit := string(s.input[start:s.position])
+				return Token{Type: "STRING", Literal: lit, Span: Span{start, s.position}}
 			} else if s.ch == '\\' {
 				if s.readChar() == 0 {
 					break
@@ -45,9 +63,9 @@ func (s *scanner) readToken() Token {
 			}
 		}
 
-		return Token{Type: "ILLIGAL", Literal: string(s.ch)}
+		return Token{Type: "ILLIGAL", Literal: string(s.ch), Span: Span{start, s.position}}
 	default:
-		if l := isIdentifierStart(s.input[s.position:]); l > 0 {
+		if l := findIdentifierStart(s.input[s.position:]); l > 0 {
 			start := s.position
 
 			for range l {
@@ -55,7 +73,7 @@ func (s *scanner) readToken() Token {
 			}
 
 			for {
-				l := isIdentifierPart(s.input[s.position:])
+				l := findIdentifierPart(s.input[s.position:])
 				if l == 0 {
 					break
 				}
@@ -64,27 +82,27 @@ func (s *scanner) readToken() Token {
 				}
 			}
 
-			name := string(s.input[start:s.position])
+			lit := string(s.input[start:s.position])
 
-			switch name {
+			switch lit {
 			case "import":
-				return Token{Type: "IMPORT", Literal: name}
+				return Token{Type: "IMPORT", Literal: lit, Span: Span{start, s.position}}
 			case "export":
-				return Token{Type: "EXPORT", Literal: name}
+				return Token{Type: "EXPORT", Literal: lit, Span: Span{start, s.position}}
 			case "from":
-				return Token{Type: "FROM", Literal: name}
+				return Token{Type: "FROM", Literal: lit, Span: Span{start, s.position}}
 			case "as":
-				return Token{Type: "AS", Literal: name}
+				return Token{Type: "AS", Literal: lit, Span: Span{start, s.position}}
 			}
 
-			return Token{Type: "IDENT", Literal: name}
+			return Token{Type: "IDENT", Literal: lit, Span: Span{start, s.position}}
 		}
 
-		return Token{Type: "ILLIGAL", Literal: string(s.ch)}
+		return Token{Type: "ILLIGAL", Literal: string(s.ch), Span: Span{start, s.position}}
 	}
 }
 
-func isIdentifierStart(chs []rune) int {
+func findIdentifierStart(chs []rune) int {
 	switch {
 	case chs[0] == '$', chs[0] == '_',
 		unicode.Is(unicode.L, chs[0]),
@@ -97,8 +115,8 @@ func isIdentifierStart(chs []rune) int {
 	return 0
 }
 
-func isIdentifierPart(chs []rune) int {
-	if l := isIdentifierStart(chs); l > 0 {
+func findIdentifierPart(chs []rune) int {
+	if l := findIdentifierStart(chs); l > 0 {
 		return l
 	}
 
