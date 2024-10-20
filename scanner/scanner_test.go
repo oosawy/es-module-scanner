@@ -5,26 +5,33 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	input := "import defaultExport from \"module-name\";\n"
+	input := `import defaultExport from "module-name";
+import * as name from "module-name";
+import { export1 } from "module-name";
+`
 
-	expected := struct {
-		imports []string
-		exports []string
-	}{
-		[]string{"import defaultExport from \"module-name\";"},
-		[]string{},
+	expectedImports := []string{
+		`import defaultExport from "module-name";`,
+		`import * as name from "module-name";`,
+		`import { export1 } from "module-name";`,
 	}
+
+	expectedExports := []string{}
 
 	module := Scan(input)
 
-	for i, imp := range expected.imports {
-		if imp != module.Imports[i] {
+	for i, imp := range expectedImports {
+		if len(module.Imports) <= i {
+			t.Errorf("Expected `%s`, got nothing", imp)
+		} else if imp != module.Imports[i] {
 			t.Errorf("Expected `%s`, got `%s`", module.Imports[i], imp)
 		}
 	}
 
-	for i, exp := range expected.exports {
-		if exp != module.Exports[i] {
+	for i, exp := range expectedExports {
+		if len(module.Exports) <= i {
+			t.Errorf("Expected `%s`, got nothing", exp)
+		} else if exp != module.Exports[i] {
 			t.Errorf("Expected `%s`, got `%s`", module.Exports[i], exp)
 		}
 	}
