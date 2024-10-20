@@ -51,27 +51,37 @@ func (s *scanner) readChar() rune {
 	return s.ch
 }
 
+func (s *scanner) peekChar() rune {
+	if s.readPosition >= len(s.input) {
+		return 0
+	}
+	return s.input[s.readPosition]
+}
+
 func (s *scanner) skipCommentWhiteSpace() {
 	for {
 		s.skipWhiteSpace()
 		if s.ch == '/' {
-			next := s.readChar()
-			if next == '/' {
-				for s.ch != 0 && !isLineTerminator(s.ch) {
-					s.readChar()
-				}
-			} else if next == '*' {
-				for {
-					next = s.readChar()
-					if next == 0 {
+			switch s.peekChar() {
+			case '/':
+				s.readChar()
+				for s.readChar() != 0 {
+					if isLineTerminator(s.ch) {
 						break
 					}
-					if s.ch == '*' && next == '/' {
+				}
+
+			case '*':
+				s.readChar()
+				for s.readChar() != 0 {
+					if s.ch == '*' && s.peekChar() == '/' {
+						s.readChar()
 						s.readChar()
 						break
 					}
 				}
-			} else {
+
+			default:
 				break
 			}
 		} else {

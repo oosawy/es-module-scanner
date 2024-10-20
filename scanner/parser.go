@@ -5,26 +5,47 @@ import "fmt"
 func (s *scanner) tryParseImport() {
 	start := s.position
 
-	var tok = s.peekToken()
-	if tok.Type != "IMPORT" {
+	var tok Token
+	if s.peekToken().Type != "IMPORT" {
 		return
 	} else {
-		s.readToken()
+		tok = s.readToken()
 	}
 
 	tok = s.readToken()
 	switch tok.Type {
 	case "STRING":
-		s.skipCommentWhiteSpace()
-		if s.ch == ';' {
-			s.readChar()
+		goto speficer
+	case "IDENT":
+		tok = s.readToken()
+		if tok.Type == "," {
+			tok = s.readToken()
+			goto namespaceOrNamed
+		} else {
+			goto fromClause
 		}
-		lit := s.input[start:s.position]
-		s.module.Imports = append(s.module.Imports, string(lit))
+	}
+
+namespaceOrNamed:
+	switch tok.Type {
+	case "*":
+		tok = s.readToken()
+		if tok.Type != "AS" {
+			s.syntaxError()
+			return
+		}
+
+		tok = s.readToken()
+		if tok.Type != "IDENT" {
+			s.syntaxError()
+			return
+		}
+
 	case "{":
 		for {
 			tok = s.readToken()
-			if tok.Type == "ILLIGAL" {
+			println(tok.Type)
+			if !tok.valid() {
 				s.syntaxError()
 				return
 			}
@@ -33,26 +54,31 @@ func (s *scanner) tryParseImport() {
 			}
 		}
 
-		tok = s.readToken()
-		if tok.Type != "FROM" {
-			s.syntaxError()
-			return
-		}
-
-		tok = s.readToken()
-		if tok.Type != "STRING" {
-			s.syntaxError()
-			return
-		}
-
-		s.skipCommentWhiteSpace()
-		if s.ch == ';' {
-			s.readChar()
-		}
-
-		lit := s.input[start:s.position]
-		s.module.Imports = append(s.module.Imports, string(lit))
+	default:
+		s.syntaxError()
+		return
 	}
+
+	tok = s.readToken()
+fromClause:
+	if tok.Type != "FROM" {
+		s.syntaxError()
+		return
+	}
+
+	tok = s.readToken()
+speficer:
+	if tok.Type != "STRING" {
+		s.syntaxError()
+		return
+	}
+
+	if s.peekToken().Type == ";" {
+		s.readToken()
+	}
+	lit := s.input[start:s.position]
+	s.module.Imports = append(s.module.Imports, string(lit))
+
 }
 
 func (s *scanner) syntaxError() {

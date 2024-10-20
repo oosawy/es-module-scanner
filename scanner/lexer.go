@@ -13,10 +13,20 @@ type Token struct {
 	Span    Span
 }
 
+func (t Token) String() string {
+	return t.Literal
+}
+
+func (t Token) valid() bool {
+	return t.Type != "ILLIGAL" && t.Type != "EOF"
+}
+
 func (s *scanner) peekToken() Token {
+	ch := s.ch
 	position := s.position
 	readPosition := s.readPosition
 	defer func() {
+		s.ch = ch
 		s.position = position
 		s.readPosition = readPosition
 	}()
