@@ -5,7 +5,8 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	input := `import defaultExport from "module-name";
+	input := `import "module-name";
+import defaultExport from "module-name";
 import * as name from "module-name";
 import { export1 } from "module-name";
 `
